@@ -1,5 +1,5 @@
-# ACRT
-this is the code for thick cloud removal algorithm ACRT
+# MACRT
+this is the code for thick cloud removal algorithm MACRT
 
 # Simulated Thick Cloud Dataset Source
 链接：https://pan.quark.cn/s/1909048aa50c
