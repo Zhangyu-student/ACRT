@@ -1,0 +1,123 @@
+location:
+  data_root_dir: G:\diffusion_dataset\Landsat
+  out_root_dir: ./experiments/
+  tb_dir: ./tb_logs/
+  pretrained_models: ./
+data:
+  batch_size: 1
+  val_batch_size: 1
+  num_workers: 1
+  train:
+    indir: ${location.data_root_dir}/train/
+    out_size: 512
+    mask_gen_kwargs:
+      irregular_proba: 1
+      irregular_kwargs:
+        max_angle: 4
+        max_len: 300
+        max_width: 150
+        max_times: 5
+        min_times: 1
+      box_proba: 1
+      box_kwargs:
+        margin: 10
+        bbox_min_size: 30
+        bbox_max_size: 150
+        max_times: 4
+        min_times: 1
+      segm_proba: 0
+    transform_variant: no_augs
+    dataloader_kwargs:
+      batch_size: ${data.batch_size}
+      shuffle: true
+      num_workers: ${data.num_workers}
+  val:
+    indir: ${location.data_root_dir}/test/
+    img_suffix: .png
+    dataloader_kwargs:
+      batch_size: ${data.val_batch_size}
+      shuffle: false
+      num_workers: ${data.num_workers}
+  visual_test: null
+generator:
+  kind: DiffIRS1
+  inp_channels: 7
+  out_channels: 3
+  dim: 64
+  num_blocks:
+  - 1
+  - 1
+  - 1
+  - 1
+  heads:
+  - 1
+  - 1
+  - 2
+  - 4
+  ffn_expansion_factor: 1.6
+  bias: false
+  LayerNorm_type: WithBias
+  dual_pixel_task: false
+discriminator:
+  kind: pix2pixhd_nlayer
+  input_nc: 3
+  ndf: 32
+  n_layers: 4
+optimizers:
+  generator:
+    kind: adam
+    lr: 0.0002
+  discriminator:
+    kind: adam
+    lr: 0.0001
+visualizer:
+  kind: directory
+  outdir: E:/root/autodl-tmp/diffusion_test/experiments/samples
+  key_order:
+  - image
+  - ref_image
+  - predicted_image
+  - discr_output_fake
+  - discr_output_real
+  - inpainted
+  rescale_keys:
+  - discr_output_fake
+  - discr_output_real
+evaluator:
+  kind: default
+  inpainted_key: inpainted
+  integral_kind: ssim_fid100_f1
+trainer:
+  kwargs:
+    gpus: -1
+    max_epochs: 500
+    gradient_clip_val: 1
+    log_gpu_memory: None
+    limit_train_batches: 256
+    val_check_interval: 8
+    log_every_n_steps: 20
+    precision: 32
+    terminate_on_nan: false
+    check_val_every_n_epoch: 10
+    num_sanity_val_steps: 32
+    replace_sampler_ddp: false
+  run_title: ''
+training_model:
+  kind: defaultS1
+  visualize_each_iters: 32
+  concat_mask: true
+  store_discr_outputs_for_vis: true
+losses:
+  l1:
+    weight_missing: 0
+    weight_known: 10
+  perceptual:
+    weight: 1
+  adversarial:
+    kind: r1
+    weight: 1
+    gp_coef: 0.001
+    mask_as_fake_target: true
+    allow_scale_mask: true
+  feature_matching:
+    weight: 10

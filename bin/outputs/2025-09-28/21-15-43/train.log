@@ -1,0 +1,385 @@
+[2025-09-28 21:15:43,778][__main__][INFO] - location:
+  data_root_dir: G:\diffusion_dataset\Landsat
+  out_root_dir: ./experiments/
+  tb_dir: ./tb_logs/
+  pretrained_models: ./
+data:
+  batch_size: 1
+  val_batch_size: 1
+  num_workers: 1
+  train:
+    indir: ${location.data_root_dir}/train/
+    out_size: 512
+    mask_gen_kwargs:
+      irregular_proba: 1
+      irregular_kwargs:
+        max_angle: 4
+        max_len: 300
+        max_width: 150
+        max_times: 5
+        min_times: 1
+      box_proba: 1
+      box_kwargs:
+        margin: 10
+        bbox_min_size: 30
+        bbox_max_size: 150
+        max_times: 4
+        min_times: 1
+      segm_proba: 0
+    transform_variant: no_augs
+    dataloader_kwargs:
+      batch_size: ${data.batch_size}
+      shuffle: true
+      num_workers: ${data.num_workers}
+  val:
+    indir: ${location.data_root_dir}/test/
+    img_suffix: .png
+    dataloader_kwargs:
+      batch_size: ${data.val_batch_size}
+      shuffle: false
+      num_workers: ${data.num_workers}
+  visual_test: null
+generator:
+  kind: DiffIRS1
+  inp_channels: 7
+  out_channels: 3
+  dim: 64
+  num_blocks:
+  - 1
+  - 1
+  - 1
+  - 1
+  heads:
+  - 1
+  - 1
+  - 2
+  - 4
+  ffn_expansion_factor: 1.6
+  bias: false
+  LayerNorm_type: WithBias
+  dual_pixel_task: false
+discriminator:
+  kind: pix2pixhd_nlayer
+  input_nc: 3
+  ndf: 32
+  n_layers: 4
+optimizers:
+  generator:
+    kind: adam
+    lr: 0.0002
+  discriminator:
+    kind: adam
+    lr: 0.0001
+visualizer:
+  kind: directory
+  outdir: E:/root/autodl-tmp/diffusion_test/experiments/samples
+  key_order:
+  - image
+  - ref_image
+  - predicted_image
+  - discr_output_fake
+  - discr_output_real
+  - inpainted
+  rescale_keys:
+  - discr_output_fake
+  - discr_output_real
+evaluator:
+  kind: default
+  inpainted_key: inpainted
+  integral_kind: ssim_fid100_f1
+trainer:
+  kwargs:
+    gpus: -1
+    max_epochs: 500
+    gradient_clip_val: 1
+    log_gpu_memory: None
+    limit_train_batches: 256
+    val_check_interval: 8
+    log_every_n_steps: 20
+    precision: 32
+    terminate_on_nan: false
+    check_val_every_n_epoch: 10
+    num_sanity_val_steps: 32
+    replace_sampler_ddp: false
+  run_title: ''
+training_model:
+  kind: defaultS1
+  visualize_each_iters: 32
+  concat_mask: true
+  store_discr_outputs_for_vis: true
+losses:
+  l1:
+    weight_missing: 0
+    weight_known: 10
+  perceptual:
+    weight: 1
+  adversarial:
+    kind: r1
+    weight: 1
+    gp_coef: 0.001
+    mask_as_fake_target: true
+    allow_scale_mask: true
+  feature_matching:
+    weight: 10
+
+[2025-09-28 21:15:48,527][root][INFO] - Make training model defaultS1
+[2025-09-28 21:15:48,531][saicinpainting.training.trainers.baseS1][INFO] - BaseInpaintingTrainingModule init called
+[2025-09-28 21:15:48,532][root][INFO] - Make generator DiffIRS1
+[2025-09-28 21:15:48,617][saicinpainting.training.trainers.baseS1][INFO] - Generator
+DiffIRS1(
+  (G): DIRformer(
+    (patch_embed): OverlapPatchEmbed(
+      (proj): Conv2d(7, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+    )
+    (encoder_level1): ModuleList(
+      (0): TransformerBlock(
+        (norm1): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (attn): Attention(
+          (qkv1): Conv2d(64, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv2): Conv2d(64, 192, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv_dwconv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=192, bias=False)
+          (project_out): Conv2d(64, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+        (norm2): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (ffn): FeedForward(
+          (project_in): Conv2d(64, 204, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (dwconv): Conv2d(204, 204, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=204, bias=False)
+          (project_out): Conv2d(102, 64, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+      )
+    )
+    (down1_2): Downsample(
+      (body): Sequential(
+        (0): Conv2d(64, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (1): PixelUnshuffle(downscale_factor=2)
+      )
+    )
+    (encoder_level2): ModuleList(
+      (0): TransformerBlock(
+        (norm1): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (attn): Attention(
+          (qkv1): Conv2d(128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv2): Conv2d(128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv_dwconv): Conv2d(384, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=384, bias=False)
+          (project_out): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+        (norm2): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (ffn): FeedForward(
+          (project_in): Conv2d(128, 408, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (dwconv): Conv2d(408, 408, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=408, bias=False)
+          (project_out): Conv2d(204, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+      )
+    )
+    (down2_3): Downsample(
+      (body): Sequential(
+        (0): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (1): PixelUnshuffle(downscale_factor=2)
+      )
+    )
+    (encoder_level3): ModuleList(
+      (0): TransformerBlock(
+        (norm1): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (attn): Attention(
+          (qkv1): Conv2d(256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv2): Conv2d(256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv_dwconv): Conv2d(768, 768, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=768, bias=False)
+          (project_out): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+        (norm2): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (ffn): FeedForward(
+          (project_in): Conv2d(256, 818, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (dwconv): Conv2d(818, 818, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=818, bias=False)
+          (project_out): Conv2d(409, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+      )
+    )
+    (down3_4): Downsample(
+      (body): Sequential(
+        (0): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (1): PixelUnshuffle(downscale_factor=2)
+      )
+    )
+    (latent): ModuleList(
+      (0): TransformerBlock(
+        (norm1): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (attn): Attention(
+          (qkv1): Conv2d(512, 1536, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv2): Conv2d(512, 1536, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv_dwconv): Conv2d(1536, 1536, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1536, bias=False)
+          (project_out): Conv2d(512, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+        (norm2): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (ffn): FeedForward(
+          (project_in): Conv2d(512, 1638, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (dwconv): Conv2d(1638, 1638, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=1638, bias=False)
+          (project_out): Conv2d(819, 512, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+      )
+    )
+    (up4_3): Upsample(
+      (body): Sequential(
+        (0): Conv2d(512, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (1): PixelShuffle(upscale_factor=2)
+      )
+    )
+    (reduce_chan_level3): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+    (decoder_level3): ModuleList(
+      (0): TransformerBlock(
+        (norm1): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (attn): Attention(
+          (qkv1): Conv2d(256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv2): Conv2d(256, 768, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv_dwconv): Conv2d(768, 768, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=768, bias=False)
+          (project_out): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+        (norm2): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (ffn): FeedForward(
+          (project_in): Conv2d(256, 818, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (dwconv): Conv2d(818, 818, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=818, bias=False)
+          (project_out): Conv2d(409, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+      )
+    )
+    (up3_2): Upsample(
+      (body): Sequential(
+        (0): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (1): PixelShuffle(upscale_factor=2)
+      )
+    )
+    (reduce_chan_level2): Conv2d(256, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+    (decoder_level2): ModuleList(
+      (0): TransformerBlock(
+        (norm1): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (attn): Attention(
+          (qkv1): Conv2d(128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv2): Conv2d(128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv_dwconv): Conv2d(384, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=384, bias=False)
+          (project_out): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+        (norm2): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (ffn): FeedForward(
+          (project_in): Conv2d(128, 408, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (dwconv): Conv2d(408, 408, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=408, bias=False)
+          (project_out): Conv2d(204, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+      )
+    )
+    (up2_1): Upsample(
+      (body): Sequential(
+        (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+        (1): PixelShuffle(upscale_factor=2)
+      )
+    )
+    (decoder_level1): ModuleList(
+      (0): TransformerBlock(
+        (norm1): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (attn): Attention(
+          (qkv1): Conv2d(128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv2): Conv2d(128, 384, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (qkv_dwconv): Conv2d(384, 384, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=384, bias=False)
+          (project_out): Conv2d(128, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+        (norm2): LayerNorm(
+          (body): WithBias_LayerNorm()
+        )
+        (ffn): FeedForward(
+          (project_in): Conv2d(128, 408, kernel_size=(1, 1), stride=(1, 1), bias=False)
+          (dwconv): Conv2d(408, 408, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), groups=408, bias=False)
+          (project_out): Conv2d(204, 128, kernel_size=(1, 1), stride=(1, 1), bias=False)
+        )
+      )
+    )
+    (output): Conv2d(128, 3, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+  )
+)
+[2025-09-28 21:15:48,639][root][INFO] - Make discriminator pix2pixhd_nlayer
+[2025-09-28 21:15:48,658][root][INFO] - Make visualizer directory
+[2025-09-28 21:15:48,659][root][INFO] - Make evaluator default
+[2025-09-28 21:15:48,754][saicinpainting.evaluation.evaluator][INFO] - <class 'saicinpainting.evaluation.evaluator.InpaintingEvaluatorOnline'> init called
+[2025-09-28 21:15:48,756][saicinpainting.evaluation.evaluator][INFO] - <class 'saicinpainting.evaluation.evaluator.InpaintingEvaluatorOnline'> init done
+[2025-09-28 21:15:48,756][root][INFO] - Make evaluator default
+[2025-09-28 21:15:48,757][saicinpainting.evaluation.evaluator][INFO] - <class 'saicinpainting.evaluation.evaluator.InpaintingEvaluatorOnline'> init called
+[2025-09-28 21:15:48,757][saicinpainting.evaluation.evaluator][INFO] - <class 'saicinpainting.evaluation.evaluator.InpaintingEvaluatorOnline'> init done
+[2025-09-28 21:15:48,758][saicinpainting.training.trainers.baseS1][INFO] - Discriminator
+NLayerDiscriminator(
+  (model0): Sequential(
+    (0): Conv2d(3, 32, kernel_size=(4, 4), stride=(2, 2), padding=(2, 2))
+    (1): LeakyReLU(negative_slope=0.2, inplace=True)
+  )
+  (model1): Sequential(
+    (0): Conv2d(32, 64, kernel_size=(4, 4), stride=(2, 2), padding=(2, 2))
+    (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (2): LeakyReLU(negative_slope=0.2, inplace=True)
+  )
+  (model2): Sequential(
+    (0): Conv2d(64, 128, kernel_size=(4, 4), stride=(2, 2), padding=(2, 2))
+    (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (2): LeakyReLU(negative_slope=0.2, inplace=True)
+  )
+  (model3): Sequential(
+    (0): Conv2d(128, 256, kernel_size=(4, 4), stride=(2, 2), padding=(2, 2))
+    (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (2): LeakyReLU(negative_slope=0.2, inplace=True)
+  )
+  (model4): Sequential(
+    (0): Conv2d(256, 512, kernel_size=(4, 4), stride=(1, 1), padding=(2, 2))
+    (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (2): LeakyReLU(negative_slope=0.2, inplace=True)
+  )
+  (model5): Sequential(
+    (0): Conv2d(512, 1, kernel_size=(4, 4), stride=(1, 1), padding=(2, 2))
+  )
+)
+[2025-09-28 21:15:50,199][saicinpainting.training.trainers.baseS1][INFO] - BaseInpaintingTrainingModule init done
+[2025-09-28 21:15:50,617][saicinpainting.training.data.datasets][INFO] - Make val dataloader Landsat from G:\diffusion_dataset\Landsat/test/
+[2025-09-28 21:15:50,623][__main__][CRITICAL] - Training failed due to `Dataloader` returned 0 length. Please make sure that it returns at least 1 batch:
+Traceback (most recent call last):
+  File "E:\研究生\研究生科研学习\ACRT\bin\train.py", line 62, in main
+    trainer.fit(training_model)
+  File "D:\Anaconda\envs\Diffir\lib\site-packages\pytorch_lightning\trainer\trainer.py", line 499, in fit
+    self.dispatch()
+  File "D:\Anaconda\envs\Diffir\lib\site-packages\pytorch_lightning\trainer\trainer.py", line 546, in dispatch
+    self.accelerator.start_training(self)
+  File "D:\Anaconda\envs\Diffir\lib\site-packages\pytorch_lightning\accelerators\accelerator.py", line 73, in start_training
+    self.training_type_plugin.start_training(trainer)
+  File "D:\Anaconda\envs\Diffir\lib\site-packages\pytorch_lightning\plugins\training_type\training_type_plugin.py", line 114, in start_training
+    self._results = trainer.run_train()
+  File "D:\Anaconda\envs\Diffir\lib\site-packages\pytorch_lightning\trainer\trainer.py", line 607, in run_train
+    self.run_sanity_check(self.lightning_module)
+  File "D:\Anaconda\envs\Diffir\lib\site-packages\pytorch_lightning\trainer\trainer.py", line 854, in run_sanity_check
+    self.reset_val_dataloader(ref_model)
+  File "D:\Anaconda\envs\Diffir\lib\site-packages\pytorch_lightning\trainer\data_loading.py", line 364, in reset_val_dataloader
+    self.num_val_batches, self.val_dataloaders = self._reset_eval_dataloader(model, 'val')
+  File "D:\Anaconda\envs\Diffir\lib\site-packages\pytorch_lightning\trainer\data_loading.py", line 325, in _reset_eval_dataloader
+    num_batches = len(dataloader) if has_len(dataloader) else float('inf')
+  File "D:\Anaconda\envs\Diffir\lib\site-packages\pytorch_lightning\utilities\data.py", line 33, in has_len
+    raise ValueError('`Dataloader` returned 0 length. Please make sure that it returns at least 1 batch')
+ValueError: `Dataloader` returned 0 length. Please make sure that it returns at least 1 batch
+

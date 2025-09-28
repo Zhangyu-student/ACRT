@@ -1,0 +1,22 @@
+indir: G:\diffusion_dataset\Sentinel_tif\test_mask_tif  # to be overriden in CLI
+outdir: F:\diffusion_results\sentinel_results\ACRT_result2 # to be overriden in CLI
+
+model:
+  path: E:\diffusion_test\test  # to be overriden in CLI
+  checkpoint: epoch=209-step=430079.ckpt
+
+dataset:
+  kind: Sentinel
+  img_suffix: .tif
+
+device: cuda
+out_key: predicted_image
+
+refiner:
+  gpu_ids: 0 # the GPU ids of the machine to use. If only single GPU, use: "0,"
+  modulo: ${dataset.pad_out_to_modulo}
+  n_iters: 15 # number of iterations of refinement for each scale
+  lr: 0.002 # learning rate
+  min_side: 512 # all sides of image on all scales should be >= min_side / sqrt(2)
+  max_scales: 3 # max number of downscaling scales for the image-mask pyramid
+  px_budget: 1800000 # pixels budget. Any image will be resized to satisfy height*width <= px_budget
